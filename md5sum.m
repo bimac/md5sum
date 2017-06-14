@@ -13,7 +13,8 @@ function out = md5sum(in)
 %   See also GETMD5
 
 % Revision history:
-% 2017-06-17 initial release
+% 2017-06-14 small speed improvements
+% 2017-06-12 initial release
 
 % Try to pass the input to Jan Simon's GetMD5 ...
 if regexpi(which('GetMD5'),[mexext '$'])
@@ -22,22 +23,20 @@ if regexpi(which('GetMD5'),[mexext '$'])
 end
 
 % Check input argument
-validateattributes(in,{'char'},{'nonempty'});
-if ~exist(in,'file')
-	error('File not found:\n%s',in)
+validateattributes(in,{'char'},{'nonempty','row'});
+if ~java.io.File(in).exists
+	error('File not found: %s',in)
 end
 
 % Get the MD5 sum via system calls
 switch computer
     case 'GLNXA64'
         [~,tmp] = system(['md5sum ' in]);
-        out     = regexpi(tmp,'\w{32}','match','once');
     case 'MACI64'
-        [~,tmp] = system(['md5 ' in]);
-        out     = regexpi(tmp,'(?<= \= )\w{32}','match','once');
+        [~,tmp] = system(['md5 -r ' in]);
     case 'PCWIN64'
         [~,tmp] = system(['CertUtil -hashfile ' in ' MD5']);
-        out     = regexpi(tmp,'(?<=\n)\w{32}','match','once');
     otherwise
         error('%s does not support %s',mfilename,computer)
 end
+out = regexp(tmp,'^\w{32}','match','once','lineanchors');
